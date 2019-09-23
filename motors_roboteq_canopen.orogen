@@ -1,0 +1,26 @@
+# frozen_string_literal: true
+
+name 'motors_roboteq_canopen'
+
+import_types_from 'std'
+import_types_from 'base'
+import_types_from 'canbus'
+import_types_from 'canopen_master'
+
+task_context 'Task' do
+    needs_configuration
+
+    # The roboteq controller's CANOpen ID
+    property 'node_id', '/int'
+
+    # CAN messages coming from the device
+    input_port 'can_messages', 'canbus/Message'
+
+    # The desired commands
+    output_port 'joint_cmd', '/base/commands/Joints'
+
+    # The joint state
+    output_port 'joint_samples', '/base/samples/Joints'
+
+    port_driven
+end

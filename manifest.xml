@@ -1,0 +1,11 @@
+<package>
+  <description brief="oroGen integration of the Roboteq motor drivers through CANOpen">
+  </description>
+  <author>Sylvain Joyeux/sylvain.joyeux@tidewise.io</author>
+  <license>BSD 3-clause</license>
+
+  <depend package="base/cmake" />
+  <depend package="drivers/orogen/canbus" />
+  <depend package="drivers/orogen/canopen_master" />
+  <depend package="drivers/motors_roboteq_canopen" />
+</package>
