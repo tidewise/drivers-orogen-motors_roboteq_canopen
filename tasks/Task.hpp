@@ -4,6 +4,7 @@
 #define MOTORS_ROBOTEQ_CANOPEN_TASK_TASK_HPP
 
 #include "motors_roboteq_canopen/TaskBase.hpp"
+#include <motors_roboteq_canopen/Driver.hpp>
 
 namespace motors_roboteq_canopen{
 
@@ -11,7 +12,7 @@ namespace motors_roboteq_canopen{
      * \brief The task context provides and requires services. It uses an ExecutionEngine to perform its functions.
      * Essential interfaces are operations, data flow ports and properties. These interfaces have been defined using the oroGen specification.
      * In order to modify the interfaces you should (re)use oroGen and rely on the associated workflow.
-     * 
+     *
      * \details
      * The name of a TaskContext is primarily defined via:
      \verbatim
@@ -25,8 +26,15 @@ namespace motors_roboteq_canopen{
     {
 	friend class TaskBase;
     protected:
+        canopen_master::StateMachine* m_state_machine = nullptr;
+        Driver* m_driver = nullptr;
+        int m_channel_count = 0;
+        std::vector<bool> m_channel_ignored;
+        base::samples::Joints m_joint_state;
 
-
+        void waitDS402State(Channel& channel, StatusWord::State state);
+        void channelsToSwitchOnDisabled();
+        void channelsToSwitchOn();
 
     public:
         /** TaskContext constructor for Task
