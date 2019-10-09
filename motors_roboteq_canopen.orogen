@@ -7,17 +7,39 @@ import_types_from 'base'
 import_types_from 'canbus'
 import_types_from 'canopen_master'
 
-task_context 'Task' do
+using_task_library 'canopen_master'
+
+using_library 'motors_roboteq_canopen'
+import_types_from 'motors_roboteq_canopenTypes.hpp'
+
+task_context 'Task', subclasses: 'canopen_master::SlaveTask' do
     needs_configuration
 
-    # The roboteq controller's CANOpen ID
-    property 'node_id', '/int'
+    # Channel configurations, starting at channel 0
+    #
+    # Channels with operation_mode set to OPERATION_MODE_NONE are ignored
+    property 'channel_configurations',
+             '/std/vector</motors_roboteq_canopen/ChannelConfiguration>'
+
+    # Configuration parameters regarding receiving joint states
+    property 'joint_state_settings',
+             '/canopen_master/PDOCommunicationParameters'
+
+    # Configuration parameters regarding sending joint commands
+    property 'joint_command_settings',
+             '/canopen_master/PDOCommunicationParameters'
+
+    # How long the component will wait for a state change before it times out
+    #
+    # The default is 1s
+    property 'state_change_timeout',
+             '/base/Time'
 
     # CAN messages coming from the device
     input_port 'can_messages', 'canbus/Message'
 
     # The desired commands
-    output_port 'joint_cmd', '/base/commands/Joints'
+    input_port 'joint_cmd', '/base/commands/Joints'
 
     # The joint state
     output_port 'joint_samples', '/base/samples/Joints'
