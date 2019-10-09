@@ -29,6 +29,12 @@ task_context 'Task', subclasses: 'canopen_master::SlaveTask' do
     property 'joint_command_settings',
              '/canopen_master/PDOCommunicationParameters'
 
+    # How long the component will wait for a state change before it times out
+    #
+    # The default is 1s
+    property 'state_change_timeout',
+             '/base/Time'
+
     # CAN messages coming from the device
     input_port 'can_messages', 'canbus/Message'
 

@@ -11,6 +11,7 @@ using namespace motors_roboteq_canopen;
 Task::Task(string const& name)
     : TaskBase(name)
 {
+    _state_change_timeout.set(base::Time::fromSeconds(1));
 }
 
 Task::~Task()
@@ -153,11 +154,16 @@ void Task::cleanupHook()
 }
 
 void Task::waitDS402State(Channel& channel, StatusWord::State state) {
+    base::Time deadline = base::Time::now() + _state_change_timeout.get();
     while (true) {
         readSDOs(channel.queryDS402Status());
         StatusWord current = channel.getDS402Status();
         if (current.state == state) {
             break;
+        }
+        else if (base::Time::now() > deadline) {
+            throw std::runtime_error("timed out while waiting for "\
+                                     "transition to state " + to_string(state));
         }
         usleep(10000);
     }
