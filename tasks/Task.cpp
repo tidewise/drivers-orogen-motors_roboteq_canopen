@@ -51,18 +51,18 @@ bool Task::configureHook()
         return false;
     }
 
+    // The Roboteq firmware does not send the Boot-up message on RESET,
+    // so we can't guard this state transition
+    //
+    // It seems to also require a ENTER_PRE_OPERATIONAL in sonme conditions
+    // (namely, if in STOPPED state). WE make one mandatory, in any case it
+    // will just be ignored and we'll be in PRE_OPERATIONAL state
+    _can_out.write(m_slave->queryNodeStateTransition(canopen_master::NODE_RESET));
+    usleep(100000);
     toNMTState(canopen_master::NODE_PRE_OPERATIONAL,
-               canopen_master::NODE_RESET_COMMUNICATION,
-               base::Time::fromSeconds(1));
-
+               canopen_master::NODE_ENTER_PRE_OPERATIONAL,
+               base::Time::fromMilliseconds(100));
     channelsToSwitchOn();
-
-    vector<canbus::Message> tpdo_setup;
-    m_driver->setupJointStateTPDOs(tpdo_setup, 0, _joint_state_settings.get());
-    writeSDOs(tpdo_setup);
-    vector<canbus::Message> rpdo_setup;
-    m_driver->setupJointCommandRPDOs(rpdo_setup, 0, _joint_command_settings.get());
-    writeSDOs(rpdo_setup);
 
     for (int i = 0; i < m_channel_count; ++i) {
         Channel& channel = m_driver->getChannel(i);
@@ -77,12 +77,16 @@ bool Task::configureHook()
         channel.setFactors(config.factors);
     }
 
-    toNMTState(canopen_master::NODE_STOPPED,
-               canopen_master::NODE_STOP,
-               base::Time::fromSeconds(1));
     toNMTState(canopen_master::NODE_OPERATIONAL,
                canopen_master::NODE_START,
-               base::Time::fromSeconds(1));
+               base::Time::fromMilliseconds(100));
+
+    vector<canbus::Message> tpdo_setup;
+    m_driver->setupJointStateTPDOs(tpdo_setup, 0, _joint_state_settings.get());
+    writeSDOs(tpdo_setup);
+    vector<canbus::Message> rpdo_setup;
+    m_driver->setupJointCommandRPDOs(rpdo_setup, 0, _joint_command_settings.get());
+    writeSDOs(rpdo_setup);
 
     return true;
 }
