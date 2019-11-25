@@ -193,11 +193,11 @@ void Task::channelsToSwitchOnDisabled() {
             case StatusWord::SWITCH_ON_DISABLED:
                 break;
             case StatusWord::NOT_READY_TO_SWITCH_ON:
-                waitDS402State(channel, StatusWord::READY_TO_SWITCH_ON);
             case StatusWord::READY_TO_SWITCH_ON:
             case StatusWord::SWITCH_ON:
             case StatusWord::OPERATION_ENABLED:
-                writeSDOs(channel.sendDS402Transition(ControlWord::DISABLE_VOLTAGE, false));
+                writeSDOs(channel.
+                          sendDS402Transition(ControlWord::DISABLE_VOLTAGE, false));
                 break;
             case StatusWord::QUICK_STOP_ACTIVE:
                 waitDS402State(channel, StatusWord::SWITCH_ON_DISABLED);
@@ -221,13 +221,10 @@ void Task::channelsToSwitchOn() {
                 waitDS402State(channel, StatusWord::FAULT);
             case StatusWord::FAULT:
                 writeSDOs(channel.sendDS402Transition(ControlWord::FAULT_RESET, false));
+            case StatusWord::NOT_READY_TO_SWITCH_ON:
             case StatusWord::SWITCH_ON_DISABLED:
                 writeSDOs(channel.sendDS402Transition(ControlWord::SHUTDOWN, false));
             case StatusWord::READY_TO_SWITCH_ON:
-                writeSDOs(channel.sendDS402Transition(ControlWord::SWITCH_ON, false));
-                break;
-            case StatusWord::NOT_READY_TO_SWITCH_ON:
-                waitDS402State(channel, StatusWord::READY_TO_SWITCH_ON);
                 writeSDOs(channel.sendDS402Transition(ControlWord::SWITCH_ON, false));
                 break;
             case StatusWord::SWITCH_ON:
