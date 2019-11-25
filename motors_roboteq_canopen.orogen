@@ -41,5 +41,5 @@ task_context 'Task', subclasses: 'canopen_master::SlaveTask' do
     # The joint state
     output_port 'joint_samples', '/base/samples/Joints'
 
-    port_driven
+    port_driven :can_in, :joint_cmd
 end
