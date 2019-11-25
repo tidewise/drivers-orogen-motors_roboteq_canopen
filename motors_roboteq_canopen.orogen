@@ -35,9 +35,6 @@ task_context 'Task', subclasses: 'canopen_master::SlaveTask' do
     property 'state_change_timeout',
              '/base/Time'
 
-    # CAN messages coming from the device
-    input_port 'can_messages', 'canbus/Message'
-
     # The desired commands
     input_port 'joint_cmd', '/base/commands/Joints'
 
