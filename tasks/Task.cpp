@@ -114,6 +114,15 @@ void Task::updateHook()
         m_driver->process(msg);
     }
 
+    base::samples::Joints command;
+    while (_joint_cmd.read(command, false) == RTT::NewData) {
+        m_driver->setJointCommand(command);
+        auto const& messages = m_driver->getRPDOMessages();
+        for (auto const& msg : messages) {
+            _can_out.write(msg);
+        }
+    }
+
     bool has_update = true;
     for (int i = 0; i < m_channel_count; ++i) {
         auto& channel = m_driver->getChannel(i);
