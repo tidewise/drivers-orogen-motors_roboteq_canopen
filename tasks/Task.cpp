@@ -126,6 +126,7 @@ void Task::updateHook()
     }
 
     if (has_update) {
+        _joint_samples.write(m_joint_state);
         for (int i = 0; i < m_channel_count; ++i) {
             m_driver->getChannel(i).resetJointStateTracking();
         }
