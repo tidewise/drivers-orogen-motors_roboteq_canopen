@@ -58,12 +58,16 @@ bool Task::configureHook()
     // (namely, if in STOPPED state). WE make one mandatory, in any case it
     // will just be ignored and we'll be in PRE_OPERATIONAL state
     _can_out.write(m_slave->queryNodeStateTransition(canopen_master::NODE_RESET));
-    usleep(100000);
+    usleep(1000000);
     toNMTState(canopen_master::NODE_PRE_OPERATIONAL,
                canopen_master::NODE_ENTER_PRE_OPERATIONAL,
                base::Time::fromMilliseconds(100));
-    channelsToSwitchOn();
 
+    toNMTState(canopen_master::NODE_OPERATIONAL,
+               canopen_master::NODE_START,
+               base::Time::fromMilliseconds(100));
+
+    channelsToSwitchOn();
     for (int i = 0; i < m_channel_count; ++i) {
         Channel& channel = m_driver->getChannel(i);
         ChannelConfiguration const& config = channel_configurations[i];
@@ -77,16 +81,9 @@ bool Task::configureHook()
         channel.setFactors(config.factors);
     }
 
-    toNMTState(canopen_master::NODE_OPERATIONAL,
-               canopen_master::NODE_START,
-               base::Time::fromMilliseconds(100));
-
     vector<canbus::Message> tpdo_setup;
     m_driver->setupJointStateTPDOs(tpdo_setup, 0, _joint_state_settings.get());
     writeSDOs(tpdo_setup);
-    vector<canbus::Message> rpdo_setup;
-    m_driver->setupJointCommandRPDOs(rpdo_setup, 0, _joint_command_settings.get());
-    writeSDOs(rpdo_setup);
 
     return true;
 }
@@ -114,15 +111,6 @@ void Task::updateHook()
         m_driver->process(msg);
     }
 
-    base::samples::Joints command;
-    while (_joint_cmd.read(command, false) == RTT::NewData) {
-        m_driver->setJointCommand(command);
-        auto const& messages = m_driver->getRPDOMessages();
-        for (auto const& msg : messages) {
-            _can_out.write(msg);
-        }
-    }
-
     bool has_update = true;
     for (int i = 0; i < m_channel_count; ++i) {
         auto& channel = m_driver->getChannel(i);
@@ -134,11 +122,21 @@ void Task::updateHook()
         m_joint_state.elements[i] = channel.getJointState();
     }
 
-    if (has_update) {
-        _joint_samples.write(m_joint_state);
-        for (int i = 0; i < m_channel_count; ++i) {
-            m_driver->getChannel(i).resetJointStateTracking();
-        }
+    if (!has_update) {
+        return;
+    }
+
+    m_joint_state.time = base::Time::now();
+    _joint_samples.write(m_joint_state);
+    for (int i = 0; i < m_channel_count; ++i) {
+        m_driver->getChannel(i).resetJointStateTracking();
+    }
+
+    base::samples::Joints command;
+    if (_joint_cmd.read(command, false) == RTT::NewData) {
+        m_driver->setJointCommand(command);
+        auto const& messages = m_driver->queryJointCommandDownload();
+        writeSDOs(messages);
     }
 
     TaskBase::updateHook();
