@@ -28,8 +28,6 @@ namespace motors_roboteq_canopen{
     protected:
         canopen_master::StateMachine* m_state_machine = nullptr;
         DS402Driver* m_driver = nullptr;
-        int m_channel_count = 0;
-        std::vector<bool> m_channel_ignored;
         base::samples::Joints m_joint_state;
 
         void waitDS402State(DS402Channel& channel, StatusWord::State state);
