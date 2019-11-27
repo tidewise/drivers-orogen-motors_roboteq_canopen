@@ -9,8 +9,8 @@ namespace motors_roboteq_canopen {
      *
      * Channels with operation_mode set to OPERATION_MODE_NONE are ignored
      */
-    struct ChannelConfiguration {
-        OperationModes operation_mode = OPERATION_MODE_NONE;
+    struct DS402ChannelConfiguration {
+        DS402OperationModes operation_mode = DS402_OPERATION_MODE_NONE;
         Factors factors;
     };
 }
