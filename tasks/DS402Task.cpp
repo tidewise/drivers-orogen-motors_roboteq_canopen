@@ -26,26 +26,16 @@ bool DS402Task::configureHook()
     m_state_machine = nullptr;
 
     auto channel_configurations = _channel_configurations.get();
-    m_channel_count = channel_configurations.size();
-    if (m_channel_count == 0) {
+    size_t channel_count = channel_configurations.size();
+    if (channel_count == 0) {
         LOG_ERROR_S << "no channels configured" << std::endl;
-        return false;
-    }
-    else if (m_channel_count > DS402Driver::MAX_CHANNEL_COUNT) {
-        LOG_ERROR_S << "driver supports only up to "
-                    << DS402Driver::MAX_CHANNEL_COUNT << " channels" << std::endl;
         return false;
     }
 
     m_state_machine = new canopen_master::StateMachine(_node_id.get());
     m_driver = new DS402Driver(*m_state_machine, channel_configurations.size());
     m_slave = m_driver;
-    m_joint_state.elements.resize(m_channel_count);
-    m_channel_ignored.resize(m_channel_count);
-    for (int i = 0; i < m_channel_count; ++i) {
-        m_channel_ignored[i] =
-            (channel_configurations[i].operation_mode == DS402_OPERATION_MODE_NONE);
-    }
+    m_joint_state.elements.resize(channel_count);
 
     if (! DS402TaskBase::configureHook()) {
         return false;
@@ -68,7 +58,7 @@ bool DS402Task::configureHook()
                base::Time::fromMilliseconds(100));
 
     channelsToSwitchOn();
-    for (int i = 0; i < m_channel_count; ++i) {
+    for (size_t i = 0; i < channel_count; ++i) {
         DS402Channel& channel = m_driver->getChannel(i);
         DS402ChannelConfiguration const& config = channel_configurations[i];
 
@@ -93,12 +83,11 @@ bool DS402Task::startHook()
         return false;
     }
 
-    for (int i = 0; i < m_channel_count; ++i) {
-        if (m_channel_ignored[i]) {
+    for (size_t i = 0; i < m_driver->getChannelCount(); ++i) {
+        DS402Channel& channel = m_driver->getChannel(i);
+        if (channel.isIgnored()) {
             continue;
         }
-
-        DS402Channel& channel = m_driver->getChannel(i);
         writeSDOs(channel.sendDS402Transition(ControlWord::ENABLE_OPERATION, false));
     }
     return true;
@@ -112,7 +101,7 @@ void DS402Task::updateHook()
     }
 
     bool has_update = true;
-    for (int i = 0; i < m_channel_count; ++i) {
+    for (size_t i = 0; i < m_driver->getChannelCount(); ++i) {
         auto& channel = m_driver->getChannel(i);
         if (!channel.hasJointStateUpdate()) {
             has_update = false;
@@ -128,7 +117,7 @@ void DS402Task::updateHook()
 
     m_joint_state.time = base::Time::now();
     _joint_samples.write(m_joint_state);
-    for (int i = 0; i < m_channel_count; ++i) {
+    for (size_t i = 0; i < m_driver->getChannelCount(); ++i) {
         m_driver->getChannel(i).resetJointStateTracking();
     }
 
@@ -148,12 +137,11 @@ void DS402Task::errorHook()
 }
 void DS402Task::stopHook()
 {
-    for (int i = 0; i < m_channel_count; ++i) {
-        if (m_channel_ignored[i]) {
+    for (size_t i = 0; i < m_driver->getChannelCount(); ++i) {
+        DS402Channel& channel = m_driver->getChannel(i);
+        if (channel.isIgnored()) {
             continue;
         }
-
-        DS402Channel& channel = m_driver->getChannel(i);
         writeSDOs(channel.sendDS402Transition(ControlWord::DISABLE_OPERATION, false));
     }
 
@@ -182,12 +170,12 @@ void DS402Task::waitDS402State(DS402Channel& channel, StatusWord::State state) {
 }
 
 void DS402Task::channelsToSwitchOnDisabled() {
-    for (int i = 0; i < m_channel_count; ++i) {
-        if (m_channel_ignored[i]) {
+    for (size_t i = 0; i < m_driver->getChannelCount(); ++i) {
+        DS402Channel& channel = m_driver->getChannel(i);
+        if (channel.isIgnored()) {
             continue;
         }
 
-        DS402Channel& channel = m_driver->getChannel(i);
         readSDOs(channel.queryDS402Status());
         StatusWord current = channel.getDS402Status();
 
@@ -214,12 +202,12 @@ void DS402Task::channelsToSwitchOnDisabled() {
 }
 
 void DS402Task::channelsToSwitchOn() {
-    for (int i = 0; i < m_channel_count; ++i) {
-        if (m_channel_ignored[i]) {
+    for (size_t i = 0; i < m_driver->getChannelCount(); ++i) {
+        DS402Channel& channel = m_driver->getChannel(i);
+        if (channel.isIgnored()) {
             continue;
         }
 
-        DS402Channel& channel = m_driver->getChannel(i);
         readSDOs(channel.queryDS402Status());
         StatusWord current = channel.getDS402Status();
 

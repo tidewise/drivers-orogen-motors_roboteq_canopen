@@ -1,10 +1,10 @@
 /* Generated from orogen/lib/orogen/templates/tasks/Task.hpp */
 
-#ifndef MOTORS_ROBOTEQ_CANOPEN_TASK_DS402TASK_HPP
-#define MOTORS_ROBOTEQ_CANOPEN_TASK_DS402TASK_HPP
+#ifndef MOTORS_ROBOTEQ_CANOPEN_TASK_TASK_HPP
+#define MOTORS_ROBOTEQ_CANOPEN_TASK_TASK_HPP
 
-#include "motors_roboteq_canopen/DS402TaskBase.hpp"
-#include <motors_roboteq_canopen/DS402Driver.hpp>
+#include "motors_roboteq_canopen/TaskBase.hpp"
+#include <motors_roboteq_canopen/Driver.hpp>
 
 namespace motors_roboteq_canopen{
 
@@ -12,7 +12,7 @@ namespace motors_roboteq_canopen{
      * \brief The task context provides and requires services. It uses an ExecutionEngine to perform its functions.
      * Essential interfaces are operations, data flow ports and properties. These interfaces have been defined using the oroGen specification.
      * In order to modify the interfaces you should (re)use oroGen and rely on the associated workflow.
-     *
+     * Controller driver that uses Roboteq's own CANOpen dictionary
      * \details
      * The name of a TaskContext is primarily defined via:
      \verbatim
@@ -22,28 +22,24 @@ namespace motors_roboteq_canopen{
      \endverbatim
      *  It can be dynamically adapted when the deployment is called with a prefix argument.
      */
-    class DS402Task : public DS402TaskBase
+    class Task : public TaskBase
     {
-	friend class DS402TaskBase;
+	friend class TaskBase;
     protected:
         canopen_master::StateMachine* m_state_machine = nullptr;
-        DS402Driver* m_driver = nullptr;
+        Driver* m_driver = nullptr;
         base::samples::Joints m_joint_state;
-
-        void waitDS402State(DS402Channel& channel, StatusWord::State state);
-        void channelsToSwitchOnDisabled();
-        void channelsToSwitchOn();
 
     public:
         /** TaskContext constructor for Task
          * \param name Name of the task. This name needs to be unique to make it identifiable via nameservices.
          * \param initial_state The initial TaskState of the TaskContext. Default is Stopped state.
          */
-        DS402Task(std::string const& name = "motors_roboteq_canopen::DS402Task");
+        Task(std::string const& name = "motors_roboteq_canopen::Task");
 
         /** Default deconstructor of Task
          */
-        ~DS402Task();
+	~Task();
 
         /** This hook is called by Orocos when the state machine transitions
          * from PreOperational to Stopped. If it returns false, then the
