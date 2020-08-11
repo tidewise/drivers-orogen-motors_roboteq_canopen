@@ -7,5 +7,6 @@
   <depend package="base/cmake" />
   <depend package="drivers/orogen/canbus" />
   <depend package="drivers/orogen/canopen_master" />
+  <depend package="drivers/orogen/raw_io" />
   <depend package="drivers/motors_roboteq_canopen" />
 </package>

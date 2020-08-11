@@ -1,36 +1,48 @@
 # frozen_string_literal: true
 
-name 'motors_roboteq_canopen'
+name "motors_roboteq_canopen"
 
-import_types_from 'std'
-import_types_from 'base'
-import_types_from 'canbus'
-import_types_from 'canopen_master'
+import_types_from "std"
+import_types_from "base"
+import_types_from "canbus"
+import_types_from "canopen_master"
+import_types_from "raw_io"
 
-using_task_library 'canopen_master'
+using_task_library "canopen_master"
 
-using_library 'motors_roboteq_canopen'
-import_types_from 'motors_roboteq_canopenTypes.hpp'
+using_library "motors_roboteq_canopen"
+import_types_from "motors_roboteq_canopenTypes.hpp"
 
 # Controller driver that uses Roboteq's own CANOpen dictionary
-task_context 'Task', subclasses: 'canopen_master::SlaveTask' do
+task_context "Task", subclasses: "canopen_master::SlaveTask" do
     needs_configuration
 
     # Channel configurations, starting at channel 0
     #
     # Channels with operation_mode set to OPERATION_MODE_NONE are ignored
-    property 'channel_configurations',
-             '/std/vector</motors_roboteq_canopen/ChannelConfiguration>'
+    property "channel_configurations",
+             "/std/vector</motors_roboteq_canopen/ChannelConfiguration>"
 
     # Configuration parameters regarding receiving joint states
-    property 'joint_state_settings',
-             '/canopen_master/PDOCommunicationParameters'
+    property "joint_state_settings",
+             "/canopen_master/PDOCommunicationParameters"
+
+    # Configuration of the analog inputs to be read
+    property "analog_input_configuration",
+             "/std/vector</motors_roboteq_canopen/AnalogInputConfiguration>"
+
+    # Configuration parameters regarding receiving analog readings
+    property "analog_input_settings",
+             "/canopen_master/PDOCommunicationParameters"
 
     # The desired commands
-    input_port 'joint_cmd', '/base/commands/Joints'
+    input_port "joint_cmd", "/base/commands/Joints"
 
     # The joint state
-    output_port 'joint_samples', '/base/samples/Joints'
+    output_port "joint_samples", "/base/samples/Joints"
+
+    # The analog inputs
+    output_port "analog_inputs", "/std/vector</raw_io/Analog>"
 
     port_driven :can_in, :joint_cmd
 end
@@ -38,30 +50,30 @@ end
 # Controller driver that uses the DS402 profile
 #
 # As of firmware 2.0, this **does not work**
-task_context 'DS402Task', subclasses: 'canopen_master::SlaveTask' do
+task_context "DS402Task", subclasses: "canopen_master::SlaveTask" do
     needs_configuration
 
     # Channel configurations, starting at channel 0
     #
     # Channels with operation_mode set to OPERATION_MODE_NONE are ignored
-    property 'channel_configurations',
-             '/std/vector</motors_roboteq_canopen/DS402ChannelConfiguration>'
+    property "channel_configurations",
+             "/std/vector</motors_roboteq_canopen/DS402ChannelConfiguration>"
 
     # Configuration parameters regarding receiving joint states
-    property 'joint_state_settings',
-             '/canopen_master/PDOCommunicationParameters'
+    property "joint_state_settings",
+             "/canopen_master/PDOCommunicationParameters"
 
     # How long the component will wait for a state change before it times out
     #
     # The default is 1s
-    property 'state_change_timeout',
-             '/base/Time'
+    property "state_change_timeout",
+             "/base/Time"
 
     # The desired commands
-    input_port 'joint_cmd', '/base/commands/Joints'
+    input_port "joint_cmd", "/base/commands/Joints"
 
     # The joint state
-    output_port 'joint_samples', '/base/samples/Joints'
+    output_port "joint_samples", "/base/samples/Joints"
 
     port_driven :can_in, :joint_cmd
 end
