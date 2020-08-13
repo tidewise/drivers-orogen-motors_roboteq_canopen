@@ -22,6 +22,15 @@ namespace motors_roboteq_canopen {
         DS402OperationModes operation_mode = DS402_OPERATION_MODE_NONE;
         Factors factors;
     };
+
+    /** Configuration of the analog inputs to be read */
+    struct AnalogInputConfiguration {
+        /** The analog input index (base zero) */
+        int index = 0;
+
+        /** Whether we should read the raw or converted value */
+        bool converted = true;
+    };
 }
 
 #endif

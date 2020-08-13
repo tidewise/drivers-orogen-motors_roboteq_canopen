@@ -30,6 +30,9 @@ namespace motors_roboteq_canopen{
         Driver* m_driver = nullptr;
         base::samples::Joints m_joint_state;
 
+        std::vector<raw_io::Analog> m_analog_inputs;
+        void outputAnalog();
+
     public:
         /** TaskContext constructor for Task
          * \param name Name of the task. This name needs to be unique to make it identifiable via nameservices.

@@ -60,8 +60,20 @@ bool Task::configureHook() {
         channel.setFactors(config.factors);
     }
 
+    auto analog_input_conf = _analog_input_configuration.get();
+    for (auto conf : analog_input_conf) {
+        if (conf.converted) {
+            m_driver->setConvertedAnalogInputEnableInTPDO(conf.index, true);
+        }
+        else {
+            m_driver->setAnalogInputEnableInTPDO(conf.index, true);
+        }
+    }
+    m_analog_inputs.resize(analog_input_conf.size());
+
     vector<canbus::Message> tpdo_setup;
-    m_driver->setupJointStateTPDOs(tpdo_setup, 0, _joint_state_settings.get());
+    int pdoIndex = m_driver->setupJointStateTPDOs(tpdo_setup, 0, _joint_state_settings.get());
+    m_driver->setupAnalogTPDOs(tpdo_setup, pdoIndex, _analog_input_settings.get());
     writeSDOs(tpdo_setup);
 
     return true;
@@ -79,6 +91,10 @@ void Task::updateHook()
     canbus::Message msg;
     while (_can_in.read(msg, false) == RTT::NewData) {
         m_driver->process(msg);
+    }
+
+    if (m_driver->hasAnalogInputUpdate() && m_driver->hasConvertedAnalogInputUpdate()) {
+        outputAnalog();
     }
 
     bool has_update = true;
@@ -110,6 +126,27 @@ void Task::updateHook()
     }
 
     TaskBase::updateHook();
+}
+void Task::outputAnalog() {
+    base::Time now = base::Time::now();
+
+    auto const& conf = _analog_input_configuration.get();
+    for (size_t i = 0; i < conf.size(); ++i) {
+        m_analog_inputs[i].time = now;
+
+        auto const& input = conf[i];
+        if (input.converted) {
+            m_analog_inputs[i].data =
+                m_driver->get<ConvertedAnalogInput>(0, input.index + 1);
+        }
+        else {
+            m_analog_inputs[i].data = m_driver->get<AnalogInput>(0, input.index + 1);
+        }
+    }
+    _analog_inputs.write(m_analog_inputs);
+
+    m_driver->resetAnalogInputTracking();
+    m_driver->resetConvertedAnalogInputTracking();
 }
 void Task::errorHook()
 {
