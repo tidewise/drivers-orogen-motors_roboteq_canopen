@@ -12,6 +12,7 @@ using_task_library "canopen_master"
 
 using_library "motors_roboteq_canopen"
 import_types_from "motors_roboteq_canopenTypes.hpp"
+import_types_from "motors_roboteq_canopen/ControllerStatus.hpp"
 
 # Controller driver that uses Roboteq's own CANOpen dictionary
 task_context "Task", subclasses: "canopen_master::SlaveTask" do
@@ -35,11 +36,18 @@ task_context "Task", subclasses: "canopen_master::SlaveTask" do
     property "analog_input_settings",
              "/canopen_master/PDOCommunicationParameters"
 
+    # Configuration parameters regarding receiving joint states
+    property "status_settings",
+             "/canopen_master/PDOCommunicationParameters"
+
     # The desired commands
     input_port "joint_cmd", "/base/commands/Joints"
 
     # The joint state
     output_port "joint_samples", "/base/samples/Joints"
+
+    # The controller status
+    output_port "controller_status", "/motors_roboteq_canopen/ControllerStatus"
 
     # The analog inputs
     output_port "analog_inputs", "/std/vector</raw_io/Analog>"

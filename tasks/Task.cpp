@@ -73,7 +73,8 @@ bool Task::configureHook() {
 
     vector<canbus::Message> tpdo_setup;
     int pdoIndex = m_driver->setupJointStateTPDOs(tpdo_setup, 0, _joint_state_settings.get());
-    m_driver->setupAnalogTPDOs(tpdo_setup, pdoIndex, _analog_input_settings.get());
+    pdoIndex = m_driver->setupAnalogTPDOs(tpdo_setup, pdoIndex, _analog_input_settings.get());
+    m_driver->setupStatusTPDOs(tpdo_setup, pdoIndex, _status_settings.get());
     writeSDOs(tpdo_setup);
 
     return true;
@@ -114,6 +115,11 @@ void Task::updateHook()
 
     m_joint_state.time = base::Time::now();
     _joint_samples.write(m_joint_state);
+    try {
+        _controller_status.write(m_driver->getControllerStatus());
+    }
+    catch(canopen_master::ObjectNotRead&) {
+    }
     for (size_t i = 0; i < m_driver->getChannelCount(); ++i) {
         m_driver->getChannel(i).resetJointStateTracking();
     }
