@@ -33,6 +33,9 @@ namespace motors_roboteq_canopen{
         std::vector<raw_io::Analog> m_analog_inputs;
         void outputAnalog();
 
+        base::Time m_status_query_deadline;
+        void handleStatus();
+
     public:
         /** TaskContext constructor for Task
          * \param name Name of the task. This name needs to be unique to make it identifiable via nameservices.

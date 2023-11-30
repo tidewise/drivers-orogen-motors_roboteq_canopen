@@ -8,6 +8,7 @@ using namespace motors_roboteq_canopen;
 
 Task::Task(std::string const& name)
     : TaskBase(name) {
+    _status_query_period.set(base::Time::fromSeconds(5));
 }
 
 Task::~Task() {
@@ -74,7 +75,9 @@ bool Task::configureHook() {
     vector<canbus::Message> tpdo_setup;
     int pdoIndex = m_driver->setupJointStateTPDOs(tpdo_setup, 0, _joint_state_settings.get());
     pdoIndex = m_driver->setupAnalogTPDOs(tpdo_setup, pdoIndex, _analog_input_settings.get());
-    m_driver->setupStatusTPDOs(tpdo_setup, pdoIndex, _status_settings.get());
+    if (_status_use_pdo.get()) {
+        m_driver->setupStatusTPDOs(tpdo_setup, pdoIndex, _status_settings.get());
+    }
     writeSDOs(tpdo_setup);
 
     return true;
@@ -85,6 +88,8 @@ bool Task::startHook()
     if (! TaskBase::startHook()) {
         return false;
     }
+
+    m_status_query_deadline = base::Time();
     return true;
 }
 void Task::updateHook()
@@ -97,6 +102,8 @@ void Task::updateHook()
     if (m_driver->hasAnalogInputUpdate() && m_driver->hasConvertedAnalogInputUpdate()) {
         outputAnalog();
     }
+
+    handleStatus();
 
     bool has_update = true;
     for (size_t i = 0; i < m_driver->getChannelCount(); ++i) {
@@ -115,11 +122,6 @@ void Task::updateHook()
 
     m_joint_state.time = base::Time::now();
     _joint_samples.write(m_joint_state);
-    try {
-        _controller_status.write(m_driver->getControllerStatus());
-    }
-    catch(canopen_master::ObjectNotRead&) {
-    }
     for (size_t i = 0; i < m_driver->getChannelCount(); ++i) {
         m_driver->getChannel(i).resetJointStateTracking();
     }
@@ -132,6 +134,25 @@ void Task::updateHook()
     }
 
     TaskBase::updateHook();
+}
+
+void Task::handleStatus() {
+    bool status_update = _status_use_pdo.get();
+    if (!_status_use_pdo.get() && m_status_query_deadline < base::Time::now()) {
+        status_update = true;
+        readSDOs(m_driver->queryControllerStatus());
+        m_status_query_deadline = base::Time::now() + _status_query_period.get();
+    }
+
+    if (!status_update) {
+        return;
+    }
+
+    try {
+        _controller_status.write(m_driver->getControllerStatus());
+    }
+    catch(canopen_master::ObjectNotRead&) {
+    }
 }
 void Task::outputAnalog() {
     base::Time now = base::Time::now();
