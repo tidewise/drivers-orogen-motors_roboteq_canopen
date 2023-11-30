@@ -40,6 +40,17 @@ task_context "Task", subclasses: "canopen_master::SlaveTask" do
     property "status_settings",
              "/canopen_master/PDOCommunicationParameters"
 
+    # Whether the status output should use PDOs (device-triggered outputs)
+    # or direct queries
+    #
+    # The amount of available PDOs is limited. Disable this if you want to use
+    # more than one channel
+    property "status_use_pdo", "bool", true
+
+    # When status_use_pdo is false, this defines the period at which the status will
+    # be queried. The default is 5s
+    property "status_query_period", "base/Time"
+
     # The desired commands
     input_port "joint_cmd", "/base/commands/Joints"
 
