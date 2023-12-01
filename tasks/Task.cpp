@@ -195,6 +195,8 @@ void Task::errorHook()
 }
 void Task::stopHook()
 {
+    readSDOs(m_driver->queryControllerStatus());
+    writeStatusPort();
     writeSDOs(m_driver->queryMotorStop());
     TaskBase::stopHook();
 }
