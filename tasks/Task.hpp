@@ -34,7 +34,10 @@ namespace motors_roboteq_canopen{
         void outputAnalog();
 
         base::Time m_status_query_deadline;
-        void handleStatus();
+        std::vector<canbus::Message> m_status_sdos;
+
+        void handleStatusQuery();
+        void writeStatusPort();
 
     public:
         /** TaskContext constructor for Task

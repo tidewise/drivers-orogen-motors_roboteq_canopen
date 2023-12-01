@@ -103,7 +103,12 @@ void Task::updateHook()
         outputAnalog();
     }
 
-    handleStatus();
+    if (_status_use_pdo.get()) {
+        writeStatusPort();
+    }
+    else {
+        handleStatusQuery();
+    }
 
     bool has_update = true;
     for (size_t i = 0; i < m_driver->getChannelCount(); ++i) {
@@ -136,24 +141,33 @@ void Task::updateHook()
     TaskBase::updateHook();
 }
 
-void Task::handleStatus() {
-    bool status_update = _status_use_pdo.get();
-    if (!_status_use_pdo.get() && m_status_query_deadline < base::Time::now()) {
-        status_update = true;
-        readSDOs(m_driver->queryControllerStatus());
+void Task::handleStatusQuery() {
+    if (m_status_sdos.empty()) {
+        if (m_status_query_deadline > base::Time::now()) {
+            return;
+        }
+
+        m_status_sdos = m_driver->queryControllerStatus();
         m_status_query_deadline = base::Time::now() + _status_query_period.get();
     }
 
-    if (!status_update) {
-        return;
-    }
+    auto msg = m_status_sdos.back();
+    m_status_sdos.pop_back();
+    readSDO(msg);
 
+    if (m_status_sdos.empty()) {
+        writeStatusPort();
+    }
+}
+
+void Task::writeStatusPort() {
     try {
         _controller_status.write(m_driver->getControllerStatus());
     }
     catch(canopen_master::ObjectNotRead&) {
     }
 }
+
 void Task::outputAnalog() {
     base::Time now = base::Time::now();
 
