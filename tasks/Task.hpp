@@ -31,6 +31,17 @@ namespace motors_roboteq_canopen{
         base::samples::Joints m_joint_state;
 
         std::vector<raw_io::Analog> m_analog_inputs;
+
+        /**
+         * @brief The feedback deadline
+         */
+        base::Time m_feedback_deadline;
+
+        /**
+         * @brief The feedback timeout
+         */
+        base::Time m_feedback_timeout;
+
         void outputAnalog();
 
         base::Time m_status_query_deadline;
