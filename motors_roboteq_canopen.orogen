@@ -40,6 +40,9 @@ task_context "Task", subclasses: "canopen_master::SlaveTask" do
     property "status_settings",
              "/canopen_master/PDOCommunicationParameters"
 
+    # Timeout which the controller will issue a stop command when no input (joint_cmd)
+    property "input_timeout", "base/Time"
+
     # Whether the status output should use PDOs (device-triggered outputs)
     # or direct queries
     #
@@ -66,9 +69,10 @@ task_context "Task", subclasses: "canopen_master::SlaveTask" do
     # The analog inputs
     output_port "analog_inputs", "/std/vector</raw_io/Analog>"
 
+    runtime_states "INPUT_TIMEOUT"
     exception_states :FEEDBACK_TIMEOUT
 
-    port_driven :can_in, :joint_cmd
+    periodic 0.1
 end
 
 # Controller driver that uses the DS402 profile

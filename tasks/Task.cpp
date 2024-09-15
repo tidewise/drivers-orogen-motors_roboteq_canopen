@@ -11,6 +11,7 @@ Task::Task(std::string const& name)
 {
     _status_query_period.set(base::Time::fromSeconds(5));
     _feedback_timeout.set(base::Time::fromSeconds(1));
+    _input_timeout.set(base::Time::fromSeconds(1));
 }
 
 Task::~Task()
@@ -30,6 +31,8 @@ bool Task::configureHook()
         LOG_ERROR_S << "no channels configured" << std::endl;
         return false;
     }
+
+    m_input_timeout = _input_timeout.get();
 
     m_state_machine = new canopen_master::StateMachine(_node_id.get());
     m_driver = new Driver(*m_state_machine, channel_configurations.size());
@@ -89,7 +92,6 @@ bool Task::configureHook()
     writeSDOs(tpdo_setup);
 
     return true;
-
 }
 bool Task::startHook()
 {
@@ -99,13 +101,18 @@ bool Task::startHook()
 
     m_status_query_deadline = base::Time();
     m_feedback_deadline = base::Time::now() + m_feedback_timeout;
-
+    m_input_deadline = base::Time::now() + m_input_timeout;
     return true;
 }
 void Task::updateHook()
 {
     if (base::Time::now() > m_feedback_deadline) {
         return exception(FEEDBACK_TIMEOUT);
+    }
+
+    if (base::Time::now() > m_input_deadline && state() != INPUT_TIMEOUT) {
+        writeSDOs(m_driver->queryMotorStop());
+        state(INPUT_TIMEOUT);
     }
 
     canbus::Message msg;
@@ -152,6 +159,11 @@ void Task::updateHook()
         m_driver->setJointCommand(command);
         auto const& messages = m_driver->queryJointCommandDownload();
         writeSDOs(messages);
+
+        m_input_deadline = base::Time::now() + m_input_timeout;
+        if (state() == INPUT_TIMEOUT) {
+            state(RUNNING);
+        }
     }
 
     TaskBase::updateHook();
