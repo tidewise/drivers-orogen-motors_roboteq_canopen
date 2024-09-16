@@ -9,6 +9,7 @@ using namespace motors_roboteq_canopen;
 Task::Task(std::string const& name)
     : TaskBase(name) {
     _status_query_period.set(base::Time::fromSeconds(5));
+    _feedback_timeout.set(base::Time::fromSeconds(1));
 }
 
 Task::~Task() {
@@ -35,6 +36,8 @@ bool Task::configureHook() {
     if (! TaskBase::configureHook()) {
         return false;
     }
+
+    m_feedback_timeout = _feedback_timeout.get();
 
     // The Roboteq firmware does not send the Boot-up message on RESET,
     // so we can't guard this state transition
@@ -90,10 +93,16 @@ bool Task::startHook()
     }
 
     m_status_query_deadline = base::Time();
+    m_feedback_deadline = base::Time::now() + m_feedback_timeout;
+
     return true;
 }
 void Task::updateHook()
 {
+    if (base::Time::now() > m_feedback_deadline) {
+        return exception(FEEDBACK_TIMEOUT);
+    }
+
     canbus::Message msg;
     while (_can_in.read(msg, false) == RTT::NewData) {
         m_driver->process(msg);
@@ -117,6 +126,7 @@ void Task::updateHook()
             has_update = false;
             break;
         }
+        m_feedback_deadline = base::Time::now() + m_feedback_timeout;
 
         m_joint_state.elements[i] = channel.getJointState();
     }
@@ -127,6 +137,7 @@ void Task::updateHook()
 
     m_joint_state.time = base::Time::now();
     _joint_samples.write(m_joint_state);
+
     for (size_t i = 0; i < m_driver->getChannelCount(); ++i) {
         m_driver->getChannel(i).resetJointStateTracking();
     }
