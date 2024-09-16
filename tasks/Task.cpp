@@ -106,6 +106,8 @@ bool Task::startHook()
 }
 void Task::updateHook()
 {
+    TaskBase::updateHook();
+
     if (base::Time::now() > m_feedback_deadline) {
         return exception(FEEDBACK_TIMEOUT);
     }
@@ -165,8 +167,6 @@ void Task::updateHook()
             state(RUNNING);
         }
     }
-
-    TaskBase::updateHook();
 }
 
 void Task::handleStatusQuery()
