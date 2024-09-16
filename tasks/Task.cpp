@@ -9,6 +9,7 @@ using namespace motors_roboteq_canopen;
 Task::Task(std::string const& name)
     : TaskBase(name) {
     _status_query_period.set(base::Time::fromSeconds(5));
+    _feedback_timeout.set(base::Time::fromSeconds(1));
 }
 
 Task::~Task() {
