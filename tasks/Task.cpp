@@ -7,15 +7,19 @@ using namespace std;
 using namespace motors_roboteq_canopen;
 
 Task::Task(std::string const& name)
-    : TaskBase(name) {
+    : TaskBase(name)
+{
     _status_query_period.set(base::Time::fromSeconds(5));
     _feedback_timeout.set(base::Time::fromSeconds(1));
+    _input_timeout.set(base::Time::fromSeconds(1));
 }
 
-Task::~Task() {
+Task::~Task()
+{
 }
 
-bool Task::configureHook() {
+bool Task::configureHook()
+{
     delete m_driver;
     m_driver = nullptr;
     delete m_state_machine;
@@ -28,12 +32,14 @@ bool Task::configureHook() {
         return false;
     }
 
+    m_input_timeout = _input_timeout.get();
+
     m_state_machine = new canopen_master::StateMachine(_node_id.get());
     m_driver = new Driver(*m_state_machine, channel_configurations.size());
     m_slave = m_driver;
     m_joint_state.elements.resize(channel_count);
 
-    if (! TaskBase::configureHook()) {
+    if (!TaskBase::configureHook()) {
         return false;
     }
 
@@ -48,12 +54,12 @@ bool Task::configureHook() {
     _can_out.write(m_slave->queryNodeStateTransition(canopen_master::NODE_RESET));
     usleep(1000000);
     toNMTState(canopen_master::NODE_PRE_OPERATIONAL,
-               canopen_master::NODE_ENTER_PRE_OPERATIONAL,
-               base::Time::fromMilliseconds(100));
+        canopen_master::NODE_ENTER_PRE_OPERATIONAL,
+        base::Time::fromMilliseconds(100));
 
     toNMTState(canopen_master::NODE_OPERATIONAL,
-               canopen_master::NODE_START,
-               base::Time::fromMilliseconds(100));
+        canopen_master::NODE_START,
+        base::Time::fromMilliseconds(100));
 
     writeSDOs(m_driver->queryMotorStop());
 
@@ -76,31 +82,39 @@ bool Task::configureHook() {
     m_analog_inputs.resize(analog_input_conf.size());
 
     vector<canbus::Message> tpdo_setup;
-    int pdoIndex = m_driver->setupJointStateTPDOs(tpdo_setup, 0, _joint_state_settings.get());
-    pdoIndex = m_driver->setupAnalogTPDOs(tpdo_setup, pdoIndex, _analog_input_settings.get());
+    int pdoIndex =
+        m_driver->setupJointStateTPDOs(tpdo_setup, 0, _joint_state_settings.get());
+    pdoIndex =
+        m_driver->setupAnalogTPDOs(tpdo_setup, pdoIndex, _analog_input_settings.get());
     if (_status_use_pdo.get()) {
         m_driver->setupStatusTPDOs(tpdo_setup, pdoIndex, _status_settings.get());
     }
     writeSDOs(tpdo_setup);
 
     return true;
-
 }
 bool Task::startHook()
 {
-    if (! TaskBase::startHook()) {
+    if (!TaskBase::startHook()) {
         return false;
     }
 
     m_status_query_deadline = base::Time();
     m_feedback_deadline = base::Time::now() + m_feedback_timeout;
-
+    m_input_deadline = base::Time::now() + m_input_timeout;
     return true;
 }
 void Task::updateHook()
 {
+    TaskBase::updateHook();
+
     if (base::Time::now() > m_feedback_deadline) {
         return exception(FEEDBACK_TIMEOUT);
+    }
+
+    if (base::Time::now() > m_input_deadline && state() != INPUT_TIMEOUT) {
+        writeSDOs(m_driver->queryMotorStop());
+        state(INPUT_TIMEOUT);
     }
 
     canbus::Message msg;
@@ -147,12 +161,16 @@ void Task::updateHook()
         m_driver->setJointCommand(command);
         auto const& messages = m_driver->queryJointCommandDownload();
         writeSDOs(messages);
-    }
 
-    TaskBase::updateHook();
+        m_input_deadline = base::Time::now() + m_input_timeout;
+        if (state() == INPUT_TIMEOUT) {
+            state(RUNNING);
+        }
+    }
 }
 
-void Task::handleStatusQuery() {
+void Task::handleStatusQuery()
+{
     if (m_status_sdos.empty()) {
         if (m_status_query_deadline > base::Time::now()) {
             return;
@@ -171,15 +189,17 @@ void Task::handleStatusQuery() {
     }
 }
 
-void Task::writeStatusPort() {
+void Task::writeStatusPort()
+{
     try {
         _controller_status.write(m_driver->getControllerStatus());
     }
-    catch(canopen_master::ObjectNotRead&) {
+    catch (canopen_master::ObjectNotRead&) {
     }
 }
 
-void Task::outputAnalog() {
+void Task::outputAnalog()
+{
     base::Time now = base::Time::now();
 
     auto const& conf = _analog_input_configuration.get();

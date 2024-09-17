@@ -47,6 +47,9 @@ namespace motors_roboteq_canopen{
         base::Time m_status_query_deadline;
         std::vector<canbus::Message> m_status_sdos;
 
+        base::Time m_input_deadline;
+        base::Time m_input_timeout;
+
         void handleStatusQuery();
         void writeStatusPort();
 
