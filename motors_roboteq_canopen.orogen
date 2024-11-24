@@ -72,7 +72,7 @@ task_context "Task", subclasses: "canopen_master::SlaveTask" do
     runtime_states "INPUT_TIMEOUT"
     exception_states :FEEDBACK_TIMEOUT
 
-    periodic 0.1
+    periodic 0.01
 end
 
 # Controller driver that uses the DS402 profile
