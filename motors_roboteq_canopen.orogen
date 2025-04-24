@@ -2,10 +2,13 @@
 
 name "motors_roboteq_canopen"
 
+cxx_standard "c++17"
+
 import_types_from "std"
 import_types_from "base"
 import_types_from "canbus"
 import_types_from "canopen_master"
+import_types_from "linux_gpios"
 import_types_from "raw_io"
 
 using_task_library "canopen_master"
@@ -57,8 +60,23 @@ task_context "Task", subclasses: "canopen_master::SlaveTask" do
     # How long the task will wait for a feedback until it enters an exception state
     property "feedback_timeout", "/base/Time"
 
+    # Configuration for the digital output ports
+    # `gpio_paths` must be like "1", "2", ..., "NN"
+    property "digital_output_config", "/linux_gpios/WritePathConfiguration"
+
+    # Whether the output should be written only when change
+    property "edge_triggered_digital_output", "bool", true
+
     # The desired commands
     input_port "joint_cmd", "/base/commands/Joints"
+
+    # Opposed to `joint_cmd` port we do not manage or care about this input timeout
+    # because its nominal state is configured by the `default_digital_output` property. So
+    # it will be in "timeout" most of the time
+    input_port "digital_cmd", "/linux_gpios/GPIOState"
+
+    # Controller's current digital output state
+    output_port "digital_output", "/linux_gpios/GPIOState"
 
     # The joint state
     output_port "joint_samples", "/base/samples/Joints"
