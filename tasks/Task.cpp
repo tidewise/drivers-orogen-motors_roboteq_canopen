@@ -104,11 +104,6 @@ bool Task::configureHook()
         helpers::commandToRaw(m_default_digital_output.defaults,
             m_managed_digital_outputs);
 
-    writeDefaultDigitalOutput(true);
-    _digital_output.write({base::Time::now(),
-        m_driver->parseDigitalOutput(m_raw_default_digital_output,
-            m_managed_digital_outputs)});
-
     return true;
 }
 bool Task::startHook()
@@ -116,6 +111,13 @@ bool Task::startHook()
     if (!TaskBase::startHook()) {
         return false;
     }
+
+    writeDefaultDigitalOutput(true);
+    readSDO(m_driver->queryReadDigitalOutput());
+    _digital_output.write(
+        {base::Time::now(), m_driver->readDigitalOutput(m_managed_digital_outputs)});
+
+    m_last_processed_digital_output_raw_reading = m_driver->readDigitalOutputRaw();
 
     m_status_query_deadline = base::Time();
     m_feedback_deadline = base::Time::now() + m_feedback_timeout;
