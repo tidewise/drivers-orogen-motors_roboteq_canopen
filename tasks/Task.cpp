@@ -254,7 +254,8 @@ void Task::outputAnalog()
 bool Task::handleDigitalCommand()
 {
     linux_gpios::GPIOState digital_cmd;
-    if (_digital_cmd.read(digital_cmd) != RTT::NewData) {
+    auto flow = _digital_cmd.read(digital_cmd);
+    if (flow == RTT::NoData) {
         return false;
     }
 
@@ -274,7 +275,10 @@ bool Task::handleDigitalCommand()
     }
     writeSDOs(messages);
 
-    m_digital_cmd_deadline = base::Time::now() + m_default_digital_output.timeout;
+    if (flow == RTT::NewData) {
+        m_digital_cmd_deadline = base::Time::now() + m_default_digital_output.timeout;
+    }
+
     return true;
 }
 
