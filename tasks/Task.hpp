@@ -5,6 +5,7 @@
 
 #include "motors_roboteq_canopen/TaskBase.hpp"
 #include <motors_roboteq_canopen/Driver.hpp>
+#include <linux_gpios/linux_gpiosTypes.hpp>
 
 namespace motors_roboteq_canopen{
 
@@ -32,6 +33,42 @@ namespace motors_roboteq_canopen{
 
         std::vector<raw_io::Analog> m_analog_inputs;
 
+        bool m_edge_triggered_digital_output{true};
+
+        /**
+         * default_digital_output property placeholder
+         */
+        linux_gpios::WritePathConfiguration m_default_digital_output;
+
+        /**
+         * Managed digital outputs parsed from default_digital_output property
+         */
+        std::vector<std::uint8_t> m_managed_digital_outputs;
+
+        /**
+         * Managed outputs bit mask for filtering controller's raw digital output reading
+         */
+        std::uint16_t m_managed_digital_output_mask{0};
+
+        /**
+         * Last processed digital output. Used when edge triggering enabled for deciding
+         * wether it should write to digital_output port or not
+         */
+        std::uint16_t m_last_processed_digital_output_raw_reading{0};
+
+        /**
+         * Corresponding default digital output raw reading
+         */
+        std::uint16_t m_raw_default_digital_output{0};
+
+        /**
+         * Digital command deadline
+         *
+         * It is computed based on the timeout configured in default_digital_output
+         * property
+         */
+        base::Time m_digital_cmd_deadline;
+
         /**
          * @brief The feedback deadline
          */
@@ -44,6 +81,8 @@ namespace motors_roboteq_canopen{
 
         void outputAnalog();
 
+        void outputDigital();
+
         base::Time m_status_query_deadline;
         std::vector<canbus::Message> m_status_sdos;
 
@@ -52,6 +91,22 @@ namespace motors_roboteq_canopen{
 
         void handleStatusQuery();
         void writeStatusPort();
+
+        /**
+         * Digital command handling
+         *
+         * Writes digital_cmd port samples to the driver and manages digital command
+         * deadline
+         * @return bool If a new command have been received and written
+         */
+        bool handleDigitalCommand();
+
+        /**
+         * write the default configured digital output to the controller
+         *
+         * @param force
+         */
+        void writeDefaultDigitalOutput(bool force = false);
 
     public:
         /** TaskContext constructor for Task

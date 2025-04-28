@@ -1,7 +1,10 @@
 /* Generated from orogen/lib/orogen/templates/tasks/Task.cpp */
 
 #include "Task.hpp"
+#include "Helpers.hpp"
 #include <base-logging/Logging.hpp>
+
+#include <regex>
 
 using namespace std;
 using namespace motors_roboteq_canopen;
@@ -91,6 +94,16 @@ bool Task::configureHook()
     }
     writeSDOs(tpdo_setup);
 
+    m_edge_triggered_digital_output = _edge_triggered_digital_output.get();
+    m_default_digital_output = _digital_output_config.get();
+    m_managed_digital_outputs =
+        helpers::parseManagedDigitalOutputs(m_default_digital_output.gpio_paths);
+    m_managed_digital_output_mask =
+        helpers::managedDigitalOutputMask(m_managed_digital_outputs);
+    m_raw_default_digital_output =
+        helpers::commandToRaw(m_default_digital_output.defaults,
+            m_managed_digital_outputs);
+
     return true;
 }
 bool Task::startHook()
@@ -99,9 +112,17 @@ bool Task::startHook()
         return false;
     }
 
+    writeDefaultDigitalOutput(true);
+    readSDO(m_driver->queryReadDigitalOutput());
+    _digital_output.write(
+        {base::Time::now(), m_driver->readDigitalOutput(m_managed_digital_outputs)});
+
+    m_last_processed_digital_output_raw_reading = m_driver->readDigitalOutputRaw();
+
     m_status_query_deadline = base::Time();
     m_feedback_deadline = base::Time::now() + m_feedback_timeout;
     m_input_deadline = base::Time::now() + m_input_timeout;
+    m_digital_cmd_deadline = base::Time::now() + m_default_digital_output.timeout;
     return true;
 }
 void Task::updateHook()
@@ -116,6 +137,12 @@ void Task::updateHook()
         writeSDOs(m_driver->queryMotorStop());
         state(INPUT_TIMEOUT);
     }
+
+    if (base::Time::now() > m_digital_cmd_deadline) {
+        writeDefaultDigitalOutput();
+    }
+
+    handleDigitalCommand();
 
     canbus::Message msg;
     while (_can_in.read(msg, false) == RTT::NewData) {
@@ -132,6 +159,8 @@ void Task::updateHook()
     else {
         handleStatusQuery();
     }
+
+    outputDigital();
 
     bool has_update = true;
     for (size_t i = 0; i < m_driver->getChannelCount(); ++i) {
@@ -177,6 +206,7 @@ void Task::handleStatusQuery()
         }
 
         m_status_sdos = m_driver->queryControllerStatus();
+        m_status_sdos.push_back(m_driver->queryReadDigitalOutput());
         m_status_query_deadline = base::Time::now() + _status_query_period.get();
     }
 
@@ -220,6 +250,76 @@ void Task::outputAnalog()
     m_driver->resetAnalogInputTracking();
     m_driver->resetConvertedAnalogInputTracking();
 }
+
+bool Task::handleDigitalCommand()
+{
+    linux_gpios::GPIOState digital_cmd;
+    auto flow = _digital_cmd.read(digital_cmd);
+    if (flow == RTT::NoData) {
+        return false;
+    }
+
+    if (digital_cmd.states.size() != m_managed_digital_outputs.size()) {
+        throw std::runtime_error(
+            "Digital output command size and managed output sizes mismatch");
+    }
+
+    auto updated = helpers::difference(digital_cmd.states,
+        m_driver->readDigitalOutput(m_managed_digital_outputs));
+    std::vector<canbus::Message> messages;
+    messages.reserve(updated.size());
+    for (std::uint8_t output : updated) {
+        messages.push_back(
+            m_driver->queryWriteDigitalOutput(m_managed_digital_outputs[output],
+                digital_cmd.states[output].data));
+    }
+    writeSDOs(messages);
+
+    if (flow == RTT::NewData) {
+        m_digital_cmd_deadline = base::Time::now() + m_default_digital_output.timeout;
+    }
+
+    return true;
+}
+
+void Task::writeDefaultDigitalOutput(bool force)
+{
+    std::uint16_t current_output =
+        m_driver->readDigitalOutputRaw() & m_managed_digital_output_mask;
+    if (force || current_output == m_raw_default_digital_output) {
+        return;
+    }
+
+    const std::size_t n = m_managed_digital_outputs.size();
+
+    std::vector<canbus::Message> messages;
+    messages.reserve(n);
+    for (std::size_t i = 0; i < n; i++) {
+        messages.push_back(m_driver->queryWriteDigitalOutput(m_managed_digital_outputs[i],
+            (bool)m_default_digital_output.defaults[i]));
+    }
+    writeSDOs(messages);
+}
+
+void Task::outputDigital()
+{
+    std::uint16_t current_output =
+        m_driver->readDigitalOutputRaw() & m_managed_digital_output_mask;
+
+    bool should_not_output =
+        m_edge_triggered_digital_output &&
+        current_output == m_last_processed_digital_output_raw_reading;
+
+    if (should_not_output) {
+        return;
+    }
+
+    m_last_processed_digital_output_raw_reading = current_output;
+
+    _digital_output.write(
+        {base::Time::now(), m_driver->readDigitalOutput(m_managed_digital_outputs)});
+}
+
 void Task::errorHook()
 {
     TaskBase::errorHook();
@@ -229,6 +329,7 @@ void Task::stopHook()
     readSDOs(m_driver->queryControllerStatus());
     writeStatusPort();
     writeSDOs(m_driver->queryMotorStop());
+    writeDefaultDigitalOutput();
     TaskBase::stopHook();
 }
 void Task::cleanupHook()
