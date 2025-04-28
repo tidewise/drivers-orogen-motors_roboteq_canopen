@@ -2,7 +2,8 @@
 
 include(motors_roboteq_canopenTaskLib)
 ADD_LIBRARY(${MOTORS_ROBOTEQ_CANOPEN_TASKLIB_NAME} SHARED
-    ${MOTORS_ROBOTEQ_CANOPEN_TASKLIB_SOURCES})
+    ${MOTORS_ROBOTEQ_CANOPEN_TASKLIB_SOURCES}
+    Helpers.cpp)
 add_dependencies(${MOTORS_ROBOTEQ_CANOPEN_TASKLIB_NAME}
     regen-typekit)
 
