@@ -30,10 +30,6 @@ bool Task::configureHook()
 
     auto channel_configurations = _channel_configurations.get();
     size_t channel_count = channel_configurations.size();
-    if (channel_count == 0) {
-        LOG_ERROR_S << "no channels configured" << std::endl;
-        return false;
-    }
 
     m_input_timeout = _input_timeout.get();
 
