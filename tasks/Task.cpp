@@ -280,10 +280,12 @@ bool Task::handleDigitalCommand()
 
 void Task::writeDefaultDigitalOutput(bool force)
 {
-    std::uint16_t current_output =
-        m_driver->readDigitalOutputRaw() & m_managed_digital_output_mask;
-    if (force || current_output == m_raw_default_digital_output) {
-        return;
+    if (!force) {
+        std::uint16_t current_output =
+            m_driver->readDigitalOutputRaw() & m_managed_digital_output_mask;
+        if (current_output == m_raw_default_digital_output) {
+            return;
+        }
     }
 
     const std::size_t n = m_managed_digital_outputs.size();
