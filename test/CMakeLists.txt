@@ -7,5 +7,3 @@ rock_gtest(test_suite suite.cpp
     DEPS_PKGCONFIG
         raw_io
 )
-
-target_link_libraries(test_suite ${MOTORS_ROBOTEQ_CANOPEN_TASKLIB_DEPENDENT_LIBRARIES})
