@@ -30,10 +30,6 @@ bool Task::configureHook()
 
     auto channel_configurations = _channel_configurations.get();
     size_t channel_count = channel_configurations.size();
-    if (channel_count == 0) {
-        LOG_ERROR_S << "no channels configured" << std::endl;
-        return false;
-    }
 
     m_input_timeout = _input_timeout.get();
 
@@ -284,10 +280,12 @@ bool Task::handleDigitalCommand()
 
 void Task::writeDefaultDigitalOutput(bool force)
 {
-    std::uint16_t current_output =
-        m_driver->readDigitalOutputRaw() & m_managed_digital_output_mask;
-    if (force || current_output == m_raw_default_digital_output) {
-        return;
+    if (!force) {
+        std::uint16_t current_output =
+            m_driver->readDigitalOutputRaw() & m_managed_digital_output_mask;
+        if (current_output == m_raw_default_digital_output) {
+            return;
+        }
     }
 
     const std::size_t n = m_managed_digital_outputs.size();
