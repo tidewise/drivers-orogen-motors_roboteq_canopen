@@ -1,8 +1,8 @@
 #ifndef motors_roboteq_canopen_TYPES_HPP
 #define motors_roboteq_canopen_TYPES_HPP
 
-#include <motors_roboteq_canopen/Objects.hpp>
 #include <motors_roboteq_canopen/Factors.hpp>
+#include <motors_roboteq_canopen/Objects.hpp>
 
 namespace motors_roboteq_canopen {
     /** Configuration for a single channel
@@ -34,4 +34,3 @@ namespace motors_roboteq_canopen {
 }
 
 #endif
-

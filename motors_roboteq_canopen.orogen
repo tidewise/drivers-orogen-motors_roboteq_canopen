@@ -123,3 +123,14 @@ task_context "DS402Task", subclasses: "canopen_master::SlaveTask" do
 
     port_driven :can_in, :joint_cmd
 end
+
+task_context "DigitalOutMultiplexerTask" do
+    needs_configuration
+
+    input_port "clutch_command", "/linux_gpios/GPIOState"
+    input_port "controller_selection_command", "/linux_gpios/GPIOState"
+
+    output_port "digital_out_command", "/linux_gpios/GPIOState"
+
+    port_driven
+end
