@@ -67,6 +67,7 @@ bool Task::configureHook()
         ChannelConfiguration const& config = channel_configurations[i];
         channel.setControlMode(config.control_mode);
         channel.setFactors(config.factors);
+        channel.setJointStatePositionSource(config.joint_state_position_source);
     }
 
     auto analog_input_conf = _analog_input_configuration.get();
