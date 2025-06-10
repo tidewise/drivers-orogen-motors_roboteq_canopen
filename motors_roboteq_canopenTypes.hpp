@@ -1,8 +1,9 @@
 #ifndef motors_roboteq_canopen_TYPES_HPP
 #define motors_roboteq_canopen_TYPES_HPP
 
-#include <motors_roboteq_canopen/Objects.hpp>
 #include <motors_roboteq_canopen/Factors.hpp>
+#include <motors_roboteq_canopen/Objects.hpp>
+#include <motors_roboteq_canopen/JointStatePositionSources.hpp>
 
 namespace motors_roboteq_canopen {
     /** Configuration for a single channel
@@ -11,6 +12,8 @@ namespace motors_roboteq_canopen {
      */
     struct ChannelConfiguration {
         ControlModes control_mode = CONTROL_NONE;
+        JointStatePositionSources joint_state_position_source =
+            JOINT_STATE_POSITION_SOURCE_AUTO;
         Factors factors;
     };
 
@@ -34,4 +37,3 @@ namespace motors_roboteq_canopen {
 }
 
 #endif
-
