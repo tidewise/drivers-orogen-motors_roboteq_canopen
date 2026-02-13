@@ -4,19 +4,20 @@
 #include <raw_io/Digital.hpp>
 #include <vector>
 #include <string>
+#include <cstdint>
 
 namespace motors_roboteq_canopen {
     namespace helpers {
         /**
          * Converts digital outputs id string configuration to integers
          */
-        std::vector<uint8_t> parseManagedDigitalOutputs(
+        std::vector<std::uint8_t> parseManagedDigitalOutputs(
             std::vector<std::string> const& outputs);
 
         /**
          * Returns the indexes of mismatching data values
          */
-        std::vector<uint8_t> difference(std::vector<raw_io::Digital> const& s1,
+        std::vector<std::uint8_t> difference(std::vector<raw_io::Digital> const& s1,
             std::vector<raw_io::Digital> const& s2);
 
         /**
@@ -35,7 +36,7 @@ namespace motors_roboteq_canopen {
          * from 1 to MAX, where MAX is the controller digital output size
          */
         std::uint16_t commandToRaw(std::vector<std::uint8_t> const& cmd,
-            std::vector<std::uint8_t> const& managaged_digital_outputs);
+            std::vector<std::uint8_t> const& managed_digital_outputs);
 
     }
 }
